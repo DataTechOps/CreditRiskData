@@ -51,6 +51,33 @@ def apply_boxcox_transform(df, lambdas_dict):
             pass
     return df_transformed
 
+def validate_input_data(df_input, metadata):
+    """Проверяет обязательные поля и базовую корректность входных данных."""
+    required = metadata["all_features"]
+    missing = [feature for feature in required if feature not in df_input.columns]
+    if missing:
+        raise ValueError(f"Отсутствуют признаки: {missing}")
+
+    if 'person_income' in df_input.columns and (df_input['person_income'] <= 0).any():
+        raise ValueError("Признак person_income должен быть больше 0.")
+
+    categorical_constraints = {
+        'person_home_ownership': metadata.get('person_home_ownership_categories', []),
+        'loan_intent': metadata.get('loan_intent_categories', []),
+        'loan_grade': metadata.get('grade_order', metadata.get('loan_grade_categories', [])),
+    }
+
+    for column, allowed_values in categorical_constraints.items():
+        if column not in df_input.columns or not allowed_values:
+            continue
+
+        invalid_values = sorted(set(df_input[column].dropna()) - set(allowed_values))
+        if invalid_values:
+            raise ValueError(
+                f"Недопустимые значения для {column}: {invalid_values}. "
+                f"Допустимые значения: {allowed_values}"
+            )
+
 def predict_risk(user_data, model, metadata, lambdas_dict=None):
     """
     Делает предсказание риска дефолта.
@@ -74,12 +101,8 @@ def predict_risk(user_data, model, metadata, lambdas_dict=None):
     dict : Результаты предсказания
     """
     df_input = pd.DataFrame([user_data]) if isinstance(user_data, dict) else user_data.copy()
-    
-    # Проверка признаков
-    required = metadata["all_features"]
-    missing = [f for f in required if f not in df_input.columns]
-    if missing:
-        raise ValueError(f"Отсутствуют признаки: {missing}")
+
+    validate_input_data(df_input, metadata)
     
     # ШАГ 1: Логарифмирование person_income (применяется ДО Box-Cox)
     # Модель была обучена на логарифмированных значениях
@@ -96,13 +119,17 @@ def predict_risk(user_data, model, metadata, lambdas_dict=None):
     # - OrdinalEncoder для loan_grade
     
     # ШАГ 4: Предсказание модели
-    prediction = model.predict(df_input)[0]
     probabilities = model.predict_proba(df_input)[0]
+    class_to_probability = dict(zip(model.classes_, probabilities))
+    probability_default = float(class_to_probability[1])
+    probability_non_default = float(class_to_probability[0])
+    decision_threshold = float(metadata.get("decision_threshold", 0.5))
+    prediction = int(probability_default >= decision_threshold)
     
     return {
         "prediction": int(prediction),
         "prediction_class": metadata["class_names"][str(prediction)],
-        "probability_default": float(probabilities[1]),
-        "probability_non_default": float(probabilities[0]),
-        "risk_level": "Высокий риск" if probabilities[1] > 0.5 else "Низкий риск"
+        "probability_default": probability_default,
+        "probability_non_default": probability_non_default,
+        "risk_level": "Высокий риск" if probability_default >= decision_threshold else "Низкий риск"
     }

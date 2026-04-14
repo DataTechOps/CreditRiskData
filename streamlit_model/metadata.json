@@ -80,8 +80,8 @@
       "max": 94
     },
     "person_income": {
-      "min": 8,
-      "max": 14
+      "min": 4000,
+      "max": 6000000
     },
     "person_emp_length": {
       "min": 0.0,

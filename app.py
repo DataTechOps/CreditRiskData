@@ -1,8 +1,6 @@
 import streamlit as st
 import pandas as pd
-import numpy as np
 import sys
-import os
 from pathlib import Path
 
 # Добавляем путь к модулю загрузки модели
@@ -41,6 +39,11 @@ def load_all_model_data():
 
 # Загружаем модель
 model, metadata, metrics, lambdas = load_all_model_data()
+income_range = metadata['feature_ranges']['person_income']
+income_min = max(1, int(income_range['min']))
+income_max = int(income_range['max'])
+income_default = min(max(50000, income_min), income_max)
+loan_percent_income_max = float(metadata['feature_ranges']['loan_percent_income']['max'])
 
 # Заголовок приложения
 st.title("🏦 Система оценки кредитного риска")
@@ -108,9 +111,9 @@ with tab1:
             
             person_income = st.number_input(
                 "Годовой доход (в долларах)",
-                min_value=1000,
-                max_value=1000000,
-                value=50000,
+                min_value=income_min,
+                max_value=income_max,
+                value=income_default,
                 step=1000,
                 help="Введите годовой доход заёмщика в долларах США"
             )
@@ -170,7 +173,7 @@ with tab1:
             loan_percent_income = st.slider(
                 "Доля дохода на кредит",
                 min_value=0.0,
-                max_value=1.0,
+                max_value=loan_percent_income_max,
                 value=0.2,
                 step=0.01,
                 format="%.2f",
@@ -487,7 +490,7 @@ with tab2:
             col1, col2 = st.columns([1, 4])
             with col1:
                 st.markdown(f"### {metric['icon']}")
-                st.metric("", metric['value'])
+                st.metric("Значение метрики", metric['value'], label_visibility="hidden")
             with col2:
                 st.markdown(f"#### {metric['name']}")
                 st.markdown(metric['description'])
@@ -655,4 +658,3 @@ st.markdown(
     """,
     unsafe_allow_html=True
 )
-

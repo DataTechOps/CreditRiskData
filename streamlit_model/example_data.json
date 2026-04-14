@@ -1,7 +1,7 @@
 [
   {
     "person_age": 21.0,
-    "person_income": 9.169518377455928,
+    "person_income": 9600,
     "person_home_ownership": "OWN",
     "person_emp_length": 5.0,
     "loan_intent": "EDUCATION",
@@ -14,7 +14,7 @@
   },
   {
     "person_age": 25.0,
-    "person_income": 9.169518377455928,
+    "person_income": 9600,
     "person_home_ownership": "MORTGAGE",
     "person_emp_length": 1.0,
     "loan_intent": "MEDICAL",
@@ -27,7 +27,7 @@
   },
   {
     "person_age": 23.0,
-    "person_income": 11.089805421623343,
+    "person_income": 65500,
     "person_home_ownership": "RENT",
     "person_emp_length": 4.0,
     "loan_intent": "MEDICAL",
